@@ -1,5 +1,8 @@
 package com.ufsc.maven.extrairEsquemas.presenter;
 
+import com.ufsc.maven.extrairEsquemas.util.RedisConnector;
+import com.ufsc.maven.extrairEsquemas.util.MongoConnector;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -9,41 +12,17 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
+import com.mongodb.DB;
+import com.mongodb.DBCollection;
+import com.mongodb.DBObject;
+
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.ScanResult;
 
 public class Iterator {
-	
-	private Jedis jedis;
-	//Iniciação do server redis
-	public void startServer() {
-		Jedis jedis = new Jedis("localhost");
-		System.out.println("Conexão feita com sucesso");
-		jedis.close();
-	}
-	//Opção mais "lenta", porém mais efetiva para exibir todas as chaves
-	public void listAllKeys() {
-		Jedis jedis = new Jedis("localhost");
-		System.out.println("Keys: " + jedis.keys("*"));
-		jedis.close();
-	}
-	/* Deleta uma chave do servidor,
-	 * Como o comando é rpop ele deleta apenas o ultimo elemento da lista baseada na chave dada
-	 * Exemplo: Com chaves 'a', 'b', 'c', 'avião', caso seja feito um Iterator.delete(a), 
-	 * irá resultar nas chaves 'a', 'b','c' .
-	 * Caso queira deletar a primeira chave deve-se usar lpop, caso queira deletar todas as chaves encontradas use del
-	*/
-	public void delete(String key) {
-		Jedis jedis = new Jedis("localhost");
-		jedis.rpop(key);
-		jedis.close();
-	}
-	//Torna o valor entregue como o valor da chave
-	public void push(String key, String value) {
-		Jedis jedis = new Jedis("localhost");
-		jedis.set(key, value);
-		jedis.close();
-	}
+	DB db;
+	DBCollection coll;
+	DBObject dbObj;
 	/*
 	 * Comando para ler os valores do redis e detectar se são ou não JSON.
 	 * Em si ele percorre todas as chaves do redis e, para cada chave, ele detecta se a chave-valor é do tipo JSON
@@ -117,7 +96,15 @@ public class Iterator {
             json.replace(key, "null");
             }
 		}
-    	System.out.println(json);
+		insertJSON(json);
 		return json;
+	}
+	public DBCollection insertJSON(JSONObject json) {
+		MongoConnector mongo = new MongoConnector();
+		JSONParser parser = new JSONParser();
+			mongo.createCollection(dbObj);
+			coll.insert(dbObj);
+			return coll;
+			
 	}
 }

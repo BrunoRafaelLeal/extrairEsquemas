@@ -1,111 +1,41 @@
 package com.ufsc.maven.extrairEsquemas.util;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
-import org.bson.Document;
-
 import com.mongodb.MongoClient;
-import com.mongodb.MongoCredential;
+import com.mongodb.MongoException;
+import com.mongodb.WriteConcern;
+import com.mongodb.DB;
+import com.mongodb.DBCollection;
+import com.mongodb.BasicDBObject;
+import com.mongodb.DBObject;
+import com.mongodb.DBCursor;
 import com.mongodb.ServerAddress;
-import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.model.InsertManyOptions;
+import java.util.Arrays;
 
-import com.ufsc.maven.extrairEsquemas.views.MaindApp;
-
-public class MongoConnector implements Connector{
-	
-	private MongoClient client;
-	private MongoCredential credential;
-	private MongoDatabase db;
-	
-	public boolean put(String key, String json) {
-		Document doc = Document.parse(json);
-		doc.replace("_id", key);
-		this.db.getCollection("teste").insertOne(doc);
-		return true;
+public class MongoConnector{
+	    private MongoClient mongo;
+   	   	private DB db;
+   	   	private DBObject dbObj;
+	public void startServer() {
+		mongo = new MongoClient ("localhost");
+		System.out.println("Conexão feita com sucesso");
+		mongo.close();
 	}
-	@Override
-	public boolean  connect(String uri, String port, String user, String password, String DB) {
-		if (user != null && !user.isEmpty()) {
-			try {
-				this.credential = MongoCredential.createCredential(user, DB, password.toCharArray());
-				this.client = new MongoClient(new ServerAddress(uri, Integer.valueOf(port)), Arrays.asList(credential));
-				db = this.client.getDatabase(DB);	
-			} catch (Exception e) {
-				e.printStackTrace();
-				return false;
-			}
-		} else {
-			try {
-				this.client = new MongoClient(new ServerAddress(uri, Integer.valueOf(port)));
-				db = this.client.getDatabase(DB);
-			} catch (IllegalArgumentException e) {
-				e.printStackTrace();
-				return false;
-			} catch (Exception e) {
-				e.printStackTrace();
-				return false;
-			}
-		}
-		return true;
+	public void listAllKeys() {
+		mongo = new MongoClient ("localhost");
+		System.out.println("Keys: " + mongo.listDatabaseNames() );
+		mongo.close();
 	}
-	@Override
-	public void close() {
-		this.client.close();
-	}
-	@Override
-	public String toString() {
-		return "MongoDB";
-	}
-	@Override
-	public boolean importData(RelationalDB source, String query, MaindApp app, long block) {
-		Statement pstmt;
-		String collection = app.exportedTableName();
-		double progress =  (double) 256/block;
-		try {
-			pstmt = ((PostgresDB) source).getConnection().createStatement();
-			ResultSet result = pstmt.executeQuery(query);
-			int i = 0, l = 0;
-			//Transaction t = jedis.multi();
-			List<Document> bath = new ArrayList<Document>();
-			InsertManyOptions options = new InsertManyOptions().ordered(false);
-			while (result.next()) {
-				String key = result.getString("?column?");
-				Document value = Document.parse(result.getString("value"));
-				
-				value.put("_id", key+"_"+i+"."+l);
-				
-				bath.add(value);
-				
-				if (++i % 256 == 0) {
-					System.out.println("Lote: " + ++l);
-					app.updateProgressBar(progress);
-					this.db.getCollection(collection).insertMany(bath, options);
-					bath = new ArrayList<>();
-				}
-			}
-			System.out.println("Lote: " + ++l);
-		} catch (SQLException e) {
-			e.printStackTrace();
-			return false;
-		}
-
-		return true;
-	}
-	@Override
-	public void dropObject(String name) {
-		this.db.getCollection(name).drop();
+	public void delete(String key) {
+		mongo = new MongoClient ("localhost");
+		mongo.dropDatabase(key);
+		mongo.close();
 		
 	}
-	@Override
-	public void createStructure(String name, MaindApp app) {
-		// unnecessary
-		
+	public DBCollection createCollection(DBObject dbObj) {
+		mongo = new MongoClient ("localhost");
+        DBCollection coll = db.createCollection("mycol", dbObj);
+        System.out.println("Coleção criada com sucesso");
+        return coll;
 	}
-
+	
 }
